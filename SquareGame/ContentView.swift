@@ -1,5 +1,5 @@
 //
-//  ContentView.swift
+//  SquareGame.swift
 //  SquareGame
 //
 //  Created by Nadeesh Hirushan on 2025-01-11.
@@ -7,107 +7,193 @@
 
 import SwiftUI
 
-struct ContentView: View {
-    // Define the state variables for button colors (9 buttons in total)
-    @State private var buttonColors: [Color] = [
-        .red, .blue, .red, .blue, .red, .blue, .red, .blue, .red
-    ]
+struct StartScreen: View {
+    @Binding var gameState: GameState
 
-    // Define a state to track which buttons the user selects (9 buttons in total)
+    var body: some View {
+        VStack(spacing: 30) {
+            Text("Square Game")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+
+            Button(action: {
+                gameState = .game
+            }) {
+                Text("Start Game")
+                    .font(.title2)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+            }
+
+            Button(action: {
+                gameState = .guidelines
+            }) {
+                Text("Game Guidelines")
+                    .font(.title2)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.green)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+            }
+
+            Button(action: {
+                exit(0) // Exit the app (works on real devices, not in the simulator)
+            }) {
+                Text("Exit Game")
+                    .font(.title2)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.red)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+            }
+        }
+        .padding()
+    }
+}
+
+struct GuidelinesScreen: View {
+    @Binding var gameState: GameState
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Game Guidelines")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+
+            Text("1. Tap two buttons to select them.\n2. Match the colors to score points.\n3. The game ends when all pairs are matched.\n4. Try to beat your high score!")
+                .font(.title3)
+                .multilineTextAlignment(.leading)
+
+            Button(action: {
+                gameState = .start
+            }) {
+                Text("Back to Start")
+                    .font(.title2)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+            }
+        }
+        .padding()
+    }
+}
+
+struct ContentView: View {
+    @State private var gameState: GameState = .start
+    @State private var buttonColors: [Color] = [.red, .blue, .red, .blue, .red, .blue, .red, .blue, .red]
     @State private var selectedButtons: [Bool] = Array(repeating: false, count: 9)
-    
-    // Define the state to track which buttons are disabled
     @State private var disabledButtons: [Bool] = Array(repeating: false, count: 9)
-    
-    // Define the score variable
     @State private var score: Int = 0
-    
-    // Define a message to display when the user selects two buttons of different colors
+    @State private var highScore: Int = 0
     @State private var message: String = ""
 
-    // Function to check for a match when two buttons are selected
     func checkMatch() {
-        // Find which buttons are selected (true means selected)
         let selectedColors = zip(buttonColors, selectedButtons).filter { $0.1 == true }
 
-        // If exactly two buttons are selected, check for a match
         if selectedColors.count == 2 {
             if selectedColors[0].0 == selectedColors[1].0 {
                 score += 1
-                message = "Correct Selection!" // Message for correct selection
+                message = "Correct Selection!"
 
-                // Disable the selected buttons after a match
-                if let firstSelectedIndex = selectedButtons.firstIndex(of: true),
-                   let secondSelectedIndex = selectedButtons.lastIndex(of: true) {
-                    disabledButtons[firstSelectedIndex] = true
-                    disabledButtons[secondSelectedIndex] = true
+                if let firstIndex = selectedButtons.firstIndex(of: true),
+                   let secondIndex = selectedButtons.lastIndex(of: true) {
+                    disabledButtons[firstIndex] = true
+                    disabledButtons[secondIndex] = true
                 }
             } else {
-                message = "Wrong Selection" // Message for wrong selection
+                message = "Wrong Selection"
             }
-            
-            // Reset selection after checking match
+
             selectedButtons = Array(repeating: false, count: 9)
         }
-        
-        // If the score reaches 4, reset the game
+
         if score == 4 {
+            highScore = max(highScore, score)
             resetGame()
         }
     }
 
-    // Function to reset the game
     func resetGame() {
-        // Reset the score and message
         score = 0
-        message = "Game Over! You won the previous one and Try Again."
-
-        // Re-enable all buttons and reset the selection state
+        message = "Game Over! Try Again."
         disabledButtons = Array(repeating: false, count: 9)
         selectedButtons = Array(repeating: false, count: 9)
     }
 
     var body: some View {
-        VStack {
-            // Display the score
-            Text("Score: \(score)")
-                .font(.title)
-                .padding()
+        switch gameState {
+        case .start:
+            StartScreen(gameState: $gameState)
 
-            // Grid of buttons (3 rows of 3 buttons)
-            VStack(spacing: 20) {
-                ForEach(0..<3, id: \.self) { rowIndex in
-                    HStack(spacing: 20) {
-                        ForEach(0..<3, id: \.self) { columnIndex in
-                            let buttonIndex = rowIndex * 3 + columnIndex
-                            Button(action: {
-                                // Only allow selection if the button is not disabled
-                                if !disabledButtons[buttonIndex] {
-                                    selectedButtons[buttonIndex].toggle()
-                                    checkMatch() // Check for a match after each selection
+        case .guidelines:
+            GuidelinesScreen(gameState: $gameState)
+
+        case .game:
+            VStack {
+                Text("Score: \(score)")
+                    .font(.title)
+                    .padding()
+
+                Text("High Score: \(highScore)")
+                    .font(.title2)
+                    .padding()
+
+                VStack(spacing: 20) {
+                    ForEach(0..<3, id: \ .self) { rowIndex in
+                        HStack(spacing: 20) {
+                            ForEach(0..<3, id: \ .self) { columnIndex in
+                                let buttonIndex = rowIndex * 3 + columnIndex
+                                Button(action: {
+                                    if !disabledButtons[buttonIndex] {
+                                        selectedButtons[buttonIndex].toggle()
+                                        checkMatch()
+                                    }
+                                }) {
+                                    Text("")
+                                        .frame(width: 50, height: 50)
+                                        .background(buttonColors[buttonIndex])
+                                        .cornerRadius(10)
+                                        .opacity(disabledButtons[buttonIndex] ? 0.4 : 1.0)
                                 }
-                            }) {
-                                Text("Button \(buttonIndex + 1)")
-                                    .padding()
-                                    .background(buttonColors[buttonIndex])
-                                    .foregroundColor(.white)
-                                    .cornerRadius(10)
-                                    .opacity(disabledButtons[buttonIndex] ? 0.4 : 1.0) // Dim disabled buttons
+                                .disabled(disabledButtons[buttonIndex])
                             }
-                            .disabled(disabledButtons[buttonIndex]) // Disable the button visually and functionally
                         }
                     }
                 }
-            }
 
-            // Message displayed at the bottom
-            Text(message)
-                .font(.headline)
-                .foregroundColor(.red)
-                .padding(.top, 20)
+                Text(message)
+                    .font(.headline)
+                    .foregroundColor(.red)
+                    .padding(.top, 20)
+
+                Button(action: {
+                    gameState = .start
+                }) {
+                    Text("Back to Start")
+                        .font(.title2)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+            }
+            .padding()
         }
-        .padding()
     }
+}
+
+enum GameState {
+    case start
+    case game
+    case guidelines
 }
 
 struct ContentView_Previews: PreviewProvider {
